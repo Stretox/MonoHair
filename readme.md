@@ -18,6 +18,13 @@ Noteworthy Mentions
 
 ![](fig/results.png)
 
+# Requirements
+
+- A Cuda Capable GPU with as much VRAM as possible.
+- > I tested with Cuda 12.5 and Driver 555.42.06 on Ubuntu 22.04.5. I tested on a Nvidia A100 with 80GB Vram and a Nvidia RTX 3090.
+- A python installation or even better a Cuda environment. You can find my Environment in MonoHair.yaml
+- At least 40GB of free Diskspace is recommended
+
 # Build
 
 ## Getting Started ##
