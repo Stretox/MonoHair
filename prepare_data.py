@@ -73,9 +73,16 @@ if __name__ == '__main__':
 
 
     if args.prepare_data.process_camera:
-        #### 3. generate 16 fixed camera pose      generate "base_cam.json"
+        #### 3. generate 16 fixed camera pose
+        # generate "base_cam.json"
         base_cam_save_path = os.path.join(root,'colmap','base_cam.json')
-        generate_ngp_posefrom_cam_params(os.path.join(root,'colmap'),camera_path,base_cam_save_path)
+        # Check if the base_cam.json file already exists
+        if args.prepare_data.shift_help:
+            print(f"Generating {base_cam_save_path} with Shift help")
+            generate_ngp_posefrom_cam_params(os.path.join(root, 'colmap'), camera_path, base_cam_save_path, shift_help=True)
+        else:
+            print(f"Generating {base_cam_save_path}")
+            generate_ngp_posefrom_cam_params(os.path.join(root, 'colmap'), camera_path, base_cam_save_path, shift_help=False)
 
         #### 4. generate pose for each capture images    generate "cam_params.json"
         select_files = []
@@ -83,7 +90,7 @@ if __name__ == '__main__':
         for i, file in enumerate(files):
             select_files.append(file[:-4])
         data_folder = os.path.join(root, 'colmap')
-        generate_mvs_pose_from_base_cam(data_folder, select_files,camera_path, image_size=args.data.image_size)
+        generate_mvs_pose_from_base_cam(data_folder, select_files,camera_path, image_size=args.data.image_size) #TODO: Another Problem
         shutil.copyfile(os.path.join(root,'colmap/cam_params.json'), os.path.join(root,'ours','cam_params.json'))
 
 
@@ -166,7 +173,7 @@ if __name__ == '__main__':
             Headless =False
         else:
             Headless = True
-        render_bust_hair_depth(os.path.join(root,'ours/colmap_points.obj'), camera_path, save_root,bust_path=bust_path,Headless=Headless)
+        render_bust_hair_depth(os.path.join(root,'ours/colmap_points.obj'), os.path.join(root, 'colmap', 'cam_params.json'), save_root,bust_path=bust_path,Headless=Headless) # TODO: might be false. removed camera_path. put in os.path.joi(root, 'colmap', 'base_cam.json')
         save_root = os.path.join(root, 'render_depth')
         os.makedirs(save_root,exist_ok=True)
         capture_img_cam_path = os.path.join(root,'ours','cam_params.json')

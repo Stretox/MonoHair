@@ -113,11 +113,14 @@ class NerfDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         ## load smplx
+        # load the Image
         imagepath = self.data[index]
         image = imread(imagepath) / 255.
         imagename = imagepath.split('/')[-1].split('.')[0]
+        # get the Alphachannel from the Image
         alpha_image = image[:, :, -1:]
 
+        # Get rgb from the image
         image = image[:, :, :3]
 
 
@@ -552,7 +555,7 @@ class SMPLX_optimizer(torch.nn.Module):
         # mesh = trimesh.Trimesh(vertices=verts[0].detach().cpu().numpy(),faces=faces.detach().cpu().numpy())
         # trimesh.exchange.export.export_mesh(mesh,'smplx1.obj',include_texture=False)
 
-        cam = self.cam[batch['frame_id'][0]]
+        cam = self.cam[batch['frame_id'][0]] # batch is in this case the current iris data and should refer to the corresponding iris png in iris/
 
         uv,z =cam.projection(verts)
         uv[:, 0:1] = uv[:, 0:1] * -1
@@ -653,6 +656,7 @@ class SMPLX_optimizer(torch.nn.Module):
             batch['beta'] = self.beta.expand(batch_size, -1)
             batch['tex'] = self.tex.expand(batch_size, -1)
             batch = self.posemodel(batch, extra_fix_idx=extra_fix_idx)
+
             opdict = self.forward_model(batch, returnMask=use_mask, returnRendering=use_rendering,
                                         returnNormal=use_normal)
 
@@ -716,11 +720,9 @@ class SMPLX_optimizer(torch.nn.Module):
             self.optimizer.step()
 
             if vis_step < 1000 and i % vis_step == 0:
-                print('model_tsfm:',self.model_tsfm)
                 loss_info = f"Iter: {i}/{iters}: "
                 for k, v in losses.items():
                     loss_info = loss_info + f'{k}: {v:.6f}, '
-                print(loss_info)
                 visdict = {
                     'inputs': image,
                     'lmk_gt': util.tensor_vis_landmarks(image, gt_lmk, isScale=False),
@@ -870,11 +872,11 @@ if __name__ == '__main__':
 
 
     imagepath_list = []
+
     for path in current_irispath_list:
         name = path.split('/')[-1][:-4]
         if os.path.exists(os.path.join(args.path, args.subject, 'landmark2d', name+ '.txt')):
             imagepath_list.append(os.path.join(args.path, args.subject, 'matting', name + '.png'))
-
 
     dataset = NerfDataset(args, given_imagepath_list = imagepath_list)
     optimizer = SMPLX_optimizer(args, dataset, args.device,args.data.image_size)

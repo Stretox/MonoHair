@@ -489,6 +489,7 @@ class PMVO(nn.Module):
         return Ori_2D[uv[:,0],uv[:,1]]
 
     def get_ori_patch(self, uv ,view,size=1):
+        'returns the requested orientation maps'
         Ori_2D = self.Ori_dict[view]
         ori_patch = []
         for i in range(-(size//2),size//2+1):
@@ -502,6 +503,7 @@ class PMVO(nn.Module):
         return ori_patch
 
     def get_c_patch(self, uv, view, size=1):
+        'returns the requested confidence maps'
         Conf = self.Conf_dict[view]
         Conf_patch = []
         for i in range(-(size // 2), size // 2 + 1):
@@ -535,7 +537,7 @@ class PMVO(nn.Module):
 def filter_negative_points(points,pmvo,args,step=30):
     if points.shape[0] % step !=0:
         step = step+1
-    num_sub_p = points.shape[0] // 30
+    num_sub_p = points.shape[0] // step # adjusted the value 30 to be actually step
     surface_indexs = []
     surface_points = []
     filter_indexs = []
@@ -806,16 +808,21 @@ if __name__ == '__main__':
     print('Run PMVO...')
     args = config_parser()
 
+
+
+
+    ############################# Loading a bunch of stuff that was created in the prev. step ##################################
+
     device = args.device
     ### load bust
     vertices, faces,normals = load_bust(args.data.bust_path)
     vertices += args.bust_to_origin
 
-    bust_tree = KDTree(data=vertices)
+    bust_tree = KDTree(data=vertices) # a tree to look up the neares neighbour of every vert in the bust
     scalp = o3d.io.read_triangle_mesh(os.path.join(args.data.root,'ours/scalp_tsfm.obj'))
     scalp_vertices = np.asarray(scalp.vertices)
     scalp_vertices +=args.bust_to_origin
-    scalp_tree = KDTree(data=scalp_vertices)
+    scalp_tree = KDTree(data=scalp_vertices) # a tree to look up the neares neighbour of every vert in the scalp
     scalp_mean = np.mean(scalp_vertices,axis=0)
     scalp_max = np.max(scalp_vertices,axis=0)
 
@@ -823,33 +830,37 @@ if __name__ == '__main__':
     ### load camera
     camera = load_cam(args.image_camera_path)
     image_path = os.path.join(args.data.root, 'capture_images')
-    camera = parsing_camera(camera,image_path)
+    camera = parsing_camera(camera,image_path) # generates a dictionary
     print('num of view:',len(camera))
 
     ### load depth
-    depths = load_depth(camera, args.data.depth_path)
+    depths = load_depth(camera, args.data.depth_path) # generates a list with all depths
 
     ### Load Conf,Ori,mask
     Ori, Conf = Load_Ori_And_Conf(camera, args.data.Ori2D_path, args.data.Conf_path)
     masks = load_mask(camera,args.data.mask_path)
 
+    ############################################################################################################################
+
+
+
+
     ### initalize PMVO
     pmvo = PMVO(camera,depths, Ori, Conf,masks,device=device, image_size=args.data.image_size, patch_size=args.PMVO.patch_size,visible_threshold = args.PMVO.visible_threshold,conf_threshold=args.PMVO.conf_threshold)
-
 
 
     if args.PMVO.optimize:
         print('load raw mesh...')
         #### load colmap points
         colmap_points = load_colmap_points(args.data.raw_points_path, args.bbox_min, args.bust_to_origin, 0.005 / 4,
-                                           [512, 512, 384], True, args.PMVO.num_sample_per_grid)
+                                           [512, 512, 384], True, args.PMVO.num_sample_per_grid) # returns a sample of points from the obj as a pointcloud
         ### filter negative points
         points = colmap_points
         raw_points = points.copy()
         print('total points:', points.shape[0])
         print('filter low conf points...')
         if args.PMVO.filter_point:
-            surface_index, surface_points, filter_index = filter_negative_points(points, pmvo, args)
+            surface_index, surface_points, filter_index = filter_negative_points(points, pmvo, args) # Filtering all points who are not on the surface/ not visible ???
             points = surface_points
             # index = np.where(np.logical_and(surface_indexs, sample_occ.astype(np.bool_)), True, False)
             # index = ~filter_index

@@ -877,15 +877,15 @@ if __name__ == '__main__':
     args = config_parser()
 
 
-    mesh = o3d.io.read_triangle_mesh(args.data.scalp_path)
+    mesh = o3d.io.read_triangle_mesh(args.data.scalp_path) # Loading the scalp from ours/scalp_tsfm.obj
     scalp = o3d.geometry.TriangleMesh.sample_points_uniformly(mesh, number_of_points=60000,
-                                                              use_triangle_normal=False)  # 采样点云
+                                                              use_triangle_normal=False)  # 采样点云 wir nehmen 60.000 Punkte unform auf dem Skalp
     scalp_points = np.asarray(scalp.points)
     scalp_normals = np.asarray(scalp.normals)
 
 
-    scalp_points += args.bust_to_origin
-    scalp_points = torch.from_numpy(scalp_points).to(args.device)
+    scalp_points += args.bust_to_origin # centering the scalp points to the world origin (0,0,0)
+    scalp_points = torch.from_numpy(scalp_points).to(args.device) # Creates a Tensor from a numpy.ndarray
     scalp_normals = torch.from_numpy(scalp_normals).to(args.device)
 
     scalp_normals = scalp_normals / torch.linalg.norm(scalp_normals, 2, -1, keepdims=True)
